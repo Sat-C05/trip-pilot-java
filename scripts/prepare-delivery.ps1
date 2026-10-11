@@ -12,6 +12,7 @@ $tripPilotFiles=@('README.md','project-document.md','pom.xml','mvnw','mvnw.cmd',
 $tripPilotFiles+=Get-ChildItem -LiteralPath (Join-Path $tripPilotRoot '.mvn'),(Join-Path $tripPilotRoot 'backend/src'),(Join-Path $tripPilotRoot 'booking-demo/src'),(Join-Path $tripPilotRoot 'frontend/src'),(Join-Path $tripPilotRoot 'scripts') -Recurse -File | ForEach-Object {[IO.Path]::GetRelativePath($tripPilotRoot,$_.FullName)}
 $tripPilotFiles+=Get-ChildItem -LiteralPath (Join-Path $tripPilotRoot 'docs') -File -Filter '*.md' | Where-Object Name -ne 'agent-work-map.md' | ForEach-Object {[IO.Path]::GetRelativePath($tripPilotRoot,$_.FullName)}
 $tripPilotFiles+=@('.dockerignore','render.yaml')
+if(Test-Path (Join-Path $tripPilotRoot 'frontend/vercel.json')){$tripPilotFiles+='frontend/vercel.json'}
 $tripPilotFiles+=Get-ChildItem -LiteralPath (Join-Path $tripPilotRoot 'infra/deployment') -File | ForEach-Object {[IO.Path]::GetRelativePath($tripPilotRoot,$_.FullName)}
 if(Test-Path (Join-Path $tripPilotRoot 'frontend/vercel.json')){$tripPilotFiles+='frontend/vercel.json'}
 $tripPilotSecrets=@()

@@ -1,0 +1,35 @@
+{
+  "outputDirectory": "dist",
+  "buildCommand": "npm run build",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "headers": [
+    {
+      "source": "/api/:path*",
+      "headers": [
+        {
+          "value": "no-store, private",
+          "key": "Cache-Control"
+        },
+        {
+          "value": "no-store",
+          "key": "CDN-Cache-Control"
+        },
+        {
+          "value": "no-store",
+          "key": "Vercel-CDN-Cache-Control"
+        },
+        {
+          "value": "0",
+          "key": "x-vercel-enable-rewrite-caching"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://trippilot-coursework.onrender.com/api/:path*"
+    }
+  ],
+  "framework": "vite"
+}

@@ -1,6 +1,6 @@
 # Coursework deployment — preparation in progress
 
-Checked 2026-10-12. User selected Gemini API free-tier inference. **Nothing is deployed.** Existing local services and data are preserved. The six original phases and V8 coursework acceptance remain historical passing results; hosted acceptance is a separate pending gate.
+Checked 2026-10-12. User selected Gemini API free-tier inference. **Render backend is live; Vercel frontend and full hosted acceptance remain pending.** Existing local services and data are preserved. The six original phases and V8 coursework acceptance remain historical passing results; hosted acceptance is a separate pending gate.
 
 ## Candidate stack and verified constraints
 
@@ -46,7 +46,7 @@ The helper validates the HTTPS Render origin and refuses to overwrite existing c
 
 The configuration explicitly disables external-rewrite caching and adds private/no-store CDN headers. Vercel now honors upstream cache headers for new projects, making this important for sessions and private card data. [Rewrite/cache behavior](https://vercel.com/docs/routing/rewrites). Backend SSE already uses 30-second streams, 500 ms heartbeats, event IDs and `Last-Event-ID` replay; Vercel documents a 120-second external-origin response timeout. Actual flushing, reconnect/replay and retained-event expiry must be tested through the deployed host. [Timeout](https://vercel.com/docs/errors/router_external_target_error).
 
-## Hosted acceptance record — application deployment pending
+## Hosted acceptance record — Render live, full acceptance pending
 
 | Gate | Required evidence |
 | --- | --- |
@@ -61,7 +61,7 @@ The configuration explicitly disables external-rewrite caching and adds private/
 | Mobile | Hosted desktop/mobile auth, cards/edit/Trash/Inspector/comparison without overflow |
 | Public admission | Review exposure and registration/research abuse controls before unrestricted public sharing |
 
-Current new verification: focused adapter/cache/evidence tests passed **40 tests, zero failures/errors/skips**, including request pacing and cancellation/deadline while waiting. Gemini synthetic evaluation passed both 4K and 8K settings. The fresh Aiven database has all eight successful migrations; a temporary loopback-only backend reached readiness twice using the hosted profile and Connector/J certificate trust store. Docker image build, hosted proxy/browser/restart acceptance and actual application deployment remain pending.
+Current new verification: focused adapter/cache/evidence tests passed **40 tests, zero failures/errors/skips**, including request pacing and cancellation/deadline while waiting. Gemini synthetic evaluation passed both 4K and 8K settings. The fresh Aiven database has all eight successful migrations; a temporary loopback-only backend reached readiness twice using the hosted profile and Connector/J certificate trust store. The corrected Docker image built and the Render backend started; HTTPS readiness and unauthenticated private API/cache checks passed. Vercel deployment and hosted proxy/browser/restart/load acceptance remain pending.
 
 ### New-project model access check — 2026-10-11
 The user supplied2.5 Flash-Lite quota screenshots (10RPM/20RPD; TPM graph about250K) and stored a server-only key under ignored runtime-data. Key metadata access succeeded, but both generation attempts failed safely (diagnostic HTTP404). Google documents2.5 access restricted to prior active users: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-lite. Newer3.5 Flash-Lite appears in the project model inventory, but inventory is not proof of generation access or free quota. Check that model's actual quota before more calls. Model failures retain only safe numeric HTTP status, never raw provider bodies/keys. The39 fixture/validator/cache tests passed after this change. No model accepted, hosted migrations or deployment performed.
@@ -75,3 +75,6 @@ The user supplied credentials through an ignored local file. MySQL8.4.11/default
 Push the reviewed source changes before creating the Render service. In Render, select New > Web Service and connect the repository. Use branch main, Docker runtime, Free compute, an empty Root Directory, Dockerfile path `infra/deployment/Dockerfile`, and repository-root Docker context. Choose Singapore if available for the India database. Set health check `/actuator/health/readiness` and disable automatic deploys. Import the private ignored `runtime-data/hosting/render.env` through Add from .env. Add secret file `mysql-ca.pem` using the supplied CA contents so it appears at `/etc/secrets/mysql-ca.pem`. Keep both environment values and secret files out of Git and Vercel. Render builds the Docker image remotely; a local Docker installation is unnecessary. See [service creation](https://render.com/docs/web-services) and [environment/secret files](https://render.com/docs/configure-environment-variables). After the service URL exists, generate the Vercel proxy and run the remaining hosted acceptance gates.
 
 The first Render image build failed at wrapper checksum validation. The pinned SHA-256 matches the official Maven3.9.16 ZIP; the shell wrapper selects the differently hashed tarball when unzip is missing. The build image now installs unzip explicitly so the pinned ZIP is used. A fresh isolated Unix-shell wrapper download/check passed locally; an actual Render image rebuild is still required. Keep checksum validation enabled. Push the fix and select Manual Deploy > Deploy latest commit on the existing service.
+
+### Render live and Vercel handoff — 2026-10-12
+Backend https://trippilot-coursework.onrender.com responds readiness200/UP, protected planning401, csrf200. Private API/error responses carry no-store/private plus CDN/Vercel no-store. The user supplied Render startup logs (~96second application startup); Linux image build/startup succeeded, but sustained three-worker RSS remains unmeasured. Generated frontend/vercel.json for this exact origin with /api rewrite and cache controls. Push it before Vercel import: root frontend, framework Vite, build npm run build, output dist, install npm ci, Node22.x (or24.x), no application environment variables. Add no database/model secrets to the frontend host. Once Vercel provides the public URL, verify actual session cookies/CSRF/SSE flushing/replay and complete hosted acceptance.

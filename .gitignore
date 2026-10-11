@@ -1,0 +1,40 @@
+# Internal project planning and agent handoff documents (keep local)
+AGENTS.md
+agent.md
+/project-spec.md
+/decisions.md
+/process.md
+/phases.md
+/logs.md
+/docs/agent-work-map.md
+
+# Dedicated internal documentation and agent workspace directories
+/docs/internal/
+/internal-docs/
+.agents/
+.codex/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.properties
+
+# Java / React generated output
+target/
+node_modules/
+dist/
+build/
+*.class
+
+# IDE and operating-system files
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Runtime research data and diagnostic output
+runtime-data/
+*.log

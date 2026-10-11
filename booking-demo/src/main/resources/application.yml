@@ -1,0 +1,16 @@
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  port: ${SERVER_PORT:8081}
+spring:
+  application:
+    name: trippilot-booking-demo
+provider:
+  state-file: ${PROVIDER_STATE_FILE:runtime-data/booking-demo/ledger.json}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

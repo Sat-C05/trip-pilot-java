@@ -20,6 +20,7 @@ agent.md
 !.env.example
 application-local.yml
 application-local.properties
+/ca.pem
 
 # Java / React generated output
 target/

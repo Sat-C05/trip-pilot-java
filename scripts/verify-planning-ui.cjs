@@ -5,6 +5,8 @@ const http = require('node:http');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const [backendPort, email, output] = process.argv.slice(2);
+const hostedOrigin = process.env.PHASE4_HOSTED_ORIGIN;
+if (hostedOrigin && !/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(hostedOrigin)) throw new Error('Use a Vercel HTTPS origin without a path.');
 const dist = path.resolve(__dirname, '../frontend/dist');
 const errors = [];
 let browser, page;
@@ -21,8 +23,8 @@ const server = http.createServer((req, res) => {
 });
 async function text(page, value) { await page.getByText(value, { exact: true }).waitFor(); }
 (async () => {
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  const base = `http://127.0.0.1:${server.address().port}`;
+  if (!hostedOrigin) await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = hostedOrigin || `http://127.0.0.1:${server.address().port}`;
   browser = await chromium.launch({ channel: process.env.PHASE4_BROWSER_CHANNEL || 'chrome', headless: true });
   page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   page.on('pageerror', error => errors.push(error.message));
@@ -131,6 +133,8 @@ async function text(page, value) { await page.getByText(value, { exact: true }).
   await page.getByText(/cancelled ·/).waitFor();
   await page.screenshot({ path: path.join(output, 'planning-mobile.png'), fullPage: true });
   assert.equal(await page.getByText('Is train access described? browser-scope-42', { exact: true }).count(), 0);
+  // A new account must not briefly display the prior owner's plans while its request is pending.
+  await page.route('**/api/planning/sessions', async route => { if (route.request().method() === 'GET') await new Promise(resolve => setTimeout(resolve, 800)); await route.continue(); });
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await page.getByRole('button', { name: 'New here? Create an account', exact: true }).click();
   await page.getByLabel('Email', { exact: true }).fill(`browser-${Date.now()}@example.invalid`);

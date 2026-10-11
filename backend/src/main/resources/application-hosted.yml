@@ -26,6 +26,8 @@ spring:
         trustCertificateKeyStoreType: PKCS12
         trustCertificateKeyStorePassword: changeit
 trippilot:
+  dispatch:
+    wait-for-ownership: true
   model:
     base-url: https://generativelanguage.googleapis.com
     model-id: ${MODEL_ID}

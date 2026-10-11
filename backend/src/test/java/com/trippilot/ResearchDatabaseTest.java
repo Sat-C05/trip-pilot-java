@@ -61,7 +61,7 @@ class ResearchDatabaseTest {
             UUID another=first.revision(session);
             assertEquals(409,first.post("/api/planning/sessions/"+session+"/jobs","{\"revisionId\":\""+another+"\",\"requestKey\":\""+key+"\"}").statusCode());
             assertEquals(404,other.post("/api/planning/sessions/"+session+"/revisions","{\"country\":\"IN\",\"preferences\":[]}").statusCode());
-            for(String suffix:List.of("","/tasks","/sources","/result","/events","/event-log")) assertEquals(404,other.get("/api/research/jobs/"+job+suffix).statusCode());
+            for(String suffix:List.of("","/tasks","/sources","/result","/events","/event-log","/inspector")) assertEquals(404,other.get("/api/research/jobs/"+job+suffix).statusCode());
             assertEquals(404,other.post("/api/research/jobs/"+job+"/cancel","{}").statusCode());
             assertEquals(400,first.post("/api/planning/sessions/"+session+"/jobs","{\"revisionId\":\""+revision+"\",\"requestKey\":\"spoof\",\"ownerId\":\""+other.owner+"\"}").statusCode());
             assertEquals(200,first.post("/api/research/jobs/"+job+"/cancel","{}").statusCode());
@@ -87,6 +87,27 @@ class ResearchDatabaseTest {
             assertTrue(repository.result(browser.owner,job.id()).fields().stream().allMatch(f->f.state()==com.trippilot.validation.FieldState.UNAVAILABLE));
             assertEquals("SUCCEEDED",repository.tasks(browser.owner,job.id()).getFirst().status());
             assertTrue(repository.events(browser.owner,job.id(),0).stream().anyMatch(event->event.type().equals("JOB_FINISHED")));
+            var inspected=browser.get("/api/research/jobs/"+job.id()+"/inspector");assertEquals(200,inspected.statusCode());
+            assertEquals("EMPTY_SEARCH",JsonPath.read(inspected.body(),"$.job.outcomeCode"));
+            assertFalse(inspected.body().contains("baseUrl"));assertFalse(inspected.body().contains("password"));
+            assertEquals(run.model().model().promptVersion(),JsonPath.read(inspected.body(),"$.model.promptVersion"));
+            assertEquals(run.harness().modelTurns(),JsonPath.<Integer>read(inspected.body(),"$.budgets.modelTurns"));
+        }
+    }
+    @Test void inspectorHandlesNoResultAndPaginatedRetainedEvents() throws Exception {
+        try(var browser=browser();var other=browser()) {
+            UUID session=browser.session(),revision=browser.revision(session),id=browser.job(session,revision,UUID.randomUUID().toString());
+            var response=browser.get("/api/research/jobs/"+id+"/inspector");assertEquals(200,response.statusCode());
+            assertNull(JsonPath.read(response.body(),"$.result"));assertEquals("QUEUED",JsonPath.read(response.body(),"$.job.status"));
+            var job=repository.read(browser.owner,id);
+            for(int n=0;n<205;n++) jdbc.update("INSERT INTO research_events(job_id,context_id,owner_id,event_type,data) VALUES (?,?,?,'TEST_EVENT','{}')",id.toString(),job.contextId().toString(),browser.owner);
+            var first=repository.events(browser.owner,id,0);assertEquals(100,first.size());
+            var second=repository.events(browser.owner,id,first.getLast().id());assertEquals(100,second.size());
+            var last=repository.events(browser.owner,id,second.getLast().id());assertEquals(6,last.size());
+            assertTrue(last.getFirst().id()>second.getLast().id());
+            assertEquals(404,other.get("/api/research/jobs/"+id+"/event-log?after="+first.getLast().id()).statusCode());
+            assertEquals(400,browser.get("/api/research/jobs/"+id+"/event-log?after=-1").statusCode());
+            repository.cancel(browser.owner,id);
         }
     }
     @Test void savedPassagesAndMalformedSelectionYieldExplicitPartialEvidence() throws Exception {

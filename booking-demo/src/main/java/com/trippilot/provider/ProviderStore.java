@@ -32,12 +32,18 @@ public class ProviderStore implements AutoCloseable {
     public ProviderStore(@Value("${provider.state-file:runtime-data/booking-demo/ledger.json}") String file) {this(Path.of(file),Clock.systemUTC());}
     ProviderStore(Path file,Clock clock) {
         this.file=file.toAbsolutePath();this.clock=clock;
+        FileChannel opened=null;FileLock acquired=null;
         try {
             Files.createDirectories(this.file.getParent());
-            lockChannel=FileChannel.open(this.file.resolveSibling(this.file.getFileName()+".lock"),StandardOpenOption.CREATE,StandardOpenOption.WRITE);
-            lock=lockChannel.tryLock();if(lock==null) throw new IllegalStateException("Provider ledger already in use");
+            opened=FileChannel.open(this.file.resolveSibling(this.file.getFileName()+".lock"),StandardOpenOption.CREATE,StandardOpenOption.WRITE);
+            acquired=opened.tryLock();if(acquired==null) throw new IllegalStateException("Provider ledger already in use");
             ledger=Files.exists(this.file)?json.readValue(Files.readString(this.file),Ledger.class):new Ledger(new LinkedHashMap<>(),new LinkedHashMap<>(),new LinkedHashMap<>());
-        } catch(Exception failure){throw new IllegalStateException("Provider ledger unavailable",failure);}
+            lockChannel=opened;lock=acquired;
+        } catch(Exception failure){
+            try {if(acquired!=null) acquired.release();} catch(Exception cleanup){failure.addSuppressed(cleanup);}
+            try {if(opened!=null) opened.close();} catch(Exception cleanup){failure.addSuppressed(cleanup);}
+            throw new IllegalStateException("Provider ledger unavailable",failure);
+        }
     }
     private static void require(boolean valid,String code) {if(!valid) throw new ResponseStatusException(HttpStatus.CONFLICT,code);}
     private void valid(Scope scope) {

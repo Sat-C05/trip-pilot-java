@@ -8,7 +8,7 @@ Read [Project Document](project-document.md) for the technical design, scope, an
 
 ## Project status
 
-Phases 1–5 are complete as of 2026-10-11: foundations, online evidence acquisition, structured validation, planning and the optional booking demonstration. Seven forward MySQL migrations are in place. The backend supports authenticated revisions, durable research, real guide retrieval/evidence, three shared workers/one inference slot, strict validation/gaps/alternatives, cancellation/recovery and scoped SSE. The planning workspace supports clarification, cards/comparison, independent selected trips, fresh follow-ups, citations and attributed images. Booking is disabled by default; a separate simulated provider supplies scoped quotes/holds/bookings, with explicit user spending authorization, durable idempotency and uncertain-response reconciliation. No commercial booking/payment integration exists. See [booking setup, behavior and verification](docs/phase5-booking.md), [planning](docs/phase4-planning.md), [validation](docs/phase3-validation.md), [research](docs/phase2-research.md), [foundation contracts](docs/foundation-contracts.md) and [local model evaluation](docs/local-model-evaluation.md).
+All six phases are complete as of 2026-10-11: foundations, online evidence acquisition, structured validation, planning, optional booking demonstration, and diagnostics/delivery. Seven forward MySQL migrations are in place. The backend supports authenticated revisions, durable research, real guide retrieval/evidence, three shared workers/one inference slot, strict validation/gaps/alternatives, cancellation/recovery and scoped SSE. The planning workspace supports clarification, cards/comparison, independent selected trips, fresh follow-ups, citations and attributed images. Booking is disabled by default; a separate simulated provider supplies scoped quotes/holds/bookings, with explicit user spending authorization, durable idempotency and uncertain-response reconciliation. No commercial booking/payment integration exists. See [booking setup, behavior and verification](docs/phase5-booking.md), [planning](docs/phase4-planning.md), [validation](docs/phase3-validation.md), [research](docs/phase2-research.md), [foundation contracts](docs/foundation-contracts.md) and [local model evaluation](docs/local-model-evaluation.md).
 
 ## Layout
 
@@ -56,7 +56,7 @@ npm ci
 npm run dev
 ```
 
-Open http://127.0.0.1:5173 for the planning workspace and http://127.0.0.1:8002/actuator/health for database-backed health. Register/sign in, enter up to three Indian destinations, research and compare, then select a trip for independent follow-ups. Start/restart the backend to apply V7 and load the booking routes.
+Open http://127.0.0.1:5173 for the planning workspace and http://127.0.0.1:8002/actuator/health for database-backed health. Register/sign in, enter up to three Indian destinations, research and compare, then select a trip for independent follow-ups. Start/restart the backend after updates to load Inspector and booking routes; the schema remains at V7.
 
 For the optional simulated booking provider, in another terminal:
 
@@ -72,7 +72,7 @@ Provider health: http://127.0.0.1:8081/actuator/health. The portable database us
 To enable the demonstration, set `$env:BOOKING_ENABLED='true'` in the backend terminal before starting it; keep `BOOKING_PROVIDER_BASE_URL=http://127.0.0.1:8081`. In a selected trip, save complete future dates/travelers/INR budget, request inventory/quote, review the total/policy, explicitly authorize one stay with a ceiling, then submit that authorization. Only matching provider confirmation establishes success. Uncertain submissions use status reconciliation and cannot be submitted again with a new key. See [full booking instructions and limitations](docs/phase5-booking.md). Provider state stays in ignored runtime-data; keep this unauthenticated simulated server on loopback.
 ## Verification and next work
 
-Current Phase 5 acceptance passed **80 backend + 7 provider tests**, zero failures/errors/skips, both Java packages, production frontend build, real database/internet/pinned-model regression, booking/planning desktop/mobile browser checks and packaged-service smoke. Run `.\scripts\verify-phase5.ps1` for the full current suite. It uses disposable MySQL and isolated provider/model processes without replacing existing listeners. Provider defaults to verification port 18085; `-ProviderPort`, `-ModelPort`, `-NodeModules` and `-BrowserChannel` are configurable. `-Focused` omits full browser/live acceptance. Phase 6 diagnostics/delivery remains next.
+Current Phase 6 acceptance passed **100 backend + 8 provider tests**, zero failures/errors/skips, **60/60 model evaluation cases**, both Java packages, production frontend build, fresh real MySQL/internet/pinned-model regression, planning/Inspector/booking desktop/mobile browser checks, packaged-service smoke and a clean source-ZIP build with npm ci. Run `./scripts/verify-phase6.ps1` for the complete current suite; the Phase5 helper remains available for regression without the model/delivery evaluations. It uses disposable MySQL and isolated provider/model processes without replacing existing listeners. Provider defaults to verification port 18085; `-ProviderPort`, `-ModelPort`, `-NodeModules` and `-BrowserChannel` are configurable. `-Focused` omits full browser/live acceptance. Phase 6 diagnostics/delivery is COMPLETE with full acceptance. See [Research Inspector, delivery and evaluations](docs/phase6-delivery.md) and [presentation walkthrough](docs/demo-script.md). Run `./scripts/verify-phase6.ps1` for the complete diagnostics/delivery acceptance including current regression, model evaluations and a clean exported source build.
 
 Historical Phase 4 acceptance passed 68 tests with zero failures/errors/skips, plus frontend build, production browser desktop/mobile flows and packaged-service checks. The Phase 4 helper remains available for planning-specific verification; use Phase 5 above for the complete current suite. Playwright packages and installed Chrome/Edge are required; pass `-NodeModules` / `-BrowserChannel` as documented in [Phase 4](docs/phase4-planning.md). Both helpers preserve existing services/data and use the guarded Phase 3 runtime lifecycle. Browser-only checks do not replace live acceptance.
 
@@ -102,3 +102,9 @@ Long guide snapshots retain practical transport/sightseeing/accommodation sectio
 
 
 
+
+
+## Research Inspector and presentation package
+Open Research Inspector on any research card for captured model/budgets, task outcomes, validation codes, cited saved passages and the paginated event timeline. It is owner scoped and excludes endpoint credentials/raw personal model prompts/replies. Refresh it to read current saved work; expired terminal events do not erase evidence.
+
+scripts/prepare-delivery.ps1 creates a public-source-only ZIP and checksum manifest under ignored runtime-data/delivery. scripts/verify-clean-setup.ps1 extracts and builds that package with Maven wrapper and npm ci. Full acceptance additionally creates a fresh MySQL schema and exercises live/browser/provider behavior. Source/model prerequisites are not bundled. See docs/phase6-delivery.md for exact coverage, limitations and source scan scope.

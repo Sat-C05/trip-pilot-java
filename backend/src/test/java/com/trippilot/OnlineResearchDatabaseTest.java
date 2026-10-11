@@ -39,7 +39,11 @@ class OnlineResearchDatabaseTest {
             }
             assertEquals(200,browser.get("/api/research/jobs/"+id+"/result").statusCode());
             assertTrue(sources.stream().anyMatch(source->source.text().contains("Jaipur")));
-            assertTrue(job.searches()>=1 && job.searches()<=2);assertTrue(job.pages()>=1 && job.pages()<=6);assertTrue(job.modelTurns()>=1 && job.modelTurns()<=3);
+            var inspection=repository.inspect(browser.owner,id);
+            assertTrue(job.searches()>=1 && job.searches()<=inspection.budgets().searches());
+            assertTrue(job.pages()>=1 && job.pages()<=inspection.budgets().pages());
+            assertTrue(job.modelTurns()>=1 && job.modelTurns()<=inspection.budgets().modelTurns());
+            assertEquals(job.modelTurns(),repository.tasks(browser.owner,id).stream().filter(task->task.kind().equals("MODEL")).count());
             for(var source:sources) {
                 assertEquals(64,source.contentHash().length());assertFalse(source.passages().isEmpty());assertNotNull(source.retrievedAt());
                 for(var passage:source.passages()) assertEquals(source.text().substring(passage.startOffset(),passage.endOffset()),passage.text());

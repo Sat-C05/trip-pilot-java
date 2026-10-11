@@ -192,13 +192,25 @@ try {
     if (@($results | Where-Object { -not $_.passed }).Count -gt 0) { throw 'One or more smoke fixtures failed.' }
 } finally {
     if ($runtime -and -not $runtime.HasExited) {
+        $tripPilotOwnedChildren=@()
+        foreach($tripPilotChild in @(Get-CimInstance Win32_Process -Filter "ParentProcessId=$($runtime.Id)" -ErrorAction SilentlyContinue)) {
+            $tripPilotChildProcess=Get-Process -Id $tripPilotChild.ProcessId -ErrorAction SilentlyContinue
+            if($tripPilotChildProcess -and $tripPilotChildProcess.Path -eq $runtime.Path -and $tripPilotChildProcess.StartTime -ge $runtime.StartTime) {
+                $tripPilotOwnedChildren+=@{Id=$tripPilotChildProcess.Id;Path=$tripPilotChildProcess.Path;Ticks=$tripPilotChildProcess.StartTime.ToUniversalTime().Ticks}
+            }
+        }
         try {
             Invoke-RestMethod "$baseUrl/api/generate" -Method Post -ContentType application/json `
                 -Body (@{model = $Model; keep_alive = 0} | ConvertTo-Json) -TimeoutSec 10 | Out-Null
         } catch { Write-Warning 'Runtime unload request failed; stopping the evaluation server.' }
         Stop-Process -Id $runtime.Id -ErrorAction SilentlyContinue
+        foreach($tripPilotChild in $tripPilotOwnedChildren) {
+            $tripPilotChildProcess=Get-Process -Id $tripPilotChild.Id -ErrorAction SilentlyContinue
+            if($tripPilotChildProcess -and $tripPilotChildProcess.Path -eq $tripPilotChild.Path -and $tripPilotChildProcess.StartTime.ToUniversalTime().Ticks -eq $tripPilotChild.Ticks){Stop-Process -Id $tripPilotChild.Id -ErrorAction SilentlyContinue}
+        }
     }
     foreach ($key in $savedEnvironment.Keys) {
-        [Environment]::SetEnvironmentVariable($key, $savedEnvironment[$key], 'Process')
+        if($null -eq $savedEnvironment[$key]){Remove-Item -LiteralPath "Env:$key" -ErrorAction SilentlyContinue}
+        else{[Environment]::SetEnvironmentVariable($key, $savedEnvironment[$key], 'Process')}
     }
 }

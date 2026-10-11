@@ -25,6 +25,8 @@ public class ResearchController {
     ResearchRepository.Job cancel(Principal principal,@PathVariable UUID id) { return repository.cancel(principal.getName(),id); }
     @GetMapping("/api/research/jobs/{id}/tasks")
     List<ResearchRepository.Task> tasks(Principal principal,@PathVariable UUID id) { return repository.tasks(principal.getName(),id); }
+    @GetMapping("/api/research/jobs/{id}/inspector")
+    ResearchRepository.Inspection inspector(Principal principal,@PathVariable UUID id) { return repository.inspect(principal.getName(),id); }
     @GetMapping("/api/research/jobs/{id}/sources")
     List<ResearchRepository.Source> sources(Principal principal,@PathVariable UUID id) { return repository.sources(principal.getName(),id); }
     @GetMapping("/api/research/jobs/{id}/result")

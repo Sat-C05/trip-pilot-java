@@ -35,6 +35,25 @@ public class ResearchRepository {
     public record Source(UUID id, String requestedUrl, String finalUrl, Instant retrievedAt, String contentType,
             String title, String contentHash, String text, List<Passage> passages) {}
     public record Passage(UUID id, int startOffset, int endOffset, String text) {}
+    public record ModelPolicy(String provider, String modelId, String artifactFingerprint,
+            String runtimeVersion, int contextTokens, String promptVersion, int outputTokens, int callSeconds) {}
+    public record Inspection(Job job, UUID retryOf, String focus, ModelPolicy model,
+            HarnessProperties budgets, List<Task> tasks, List<Source> sources, ValidatedResearch result) {}
+    /** Owner-scoped diagnostic view. Never expose endpoint configuration, prompts or raw model responses. */
+    @org.springframework.transaction.annotation.Transactional(readOnly=true)
+    public Inspection inspect(String owner, UUID id) {
+        var job=read(owner,id);
+        var row=jdbc.queryForMap("SELECT model_snapshot,harness_snapshot,retry_of FROM research_jobs WHERE id=? AND owner_id=?",id.toString(),owner);
+        var configuration=json.readValue((String)row.get("model_snapshot"),InferenceConfiguration.class);
+        var model=configuration.model();
+        var captured=new ModelPolicy(model.provider(),model.modelId(),model.artifactFingerprint(),model.runtimeVersion(),
+                model.contextTokens(),model.promptVersion(),configuration.outputTokens(),configuration.callSeconds());
+        ValidatedResearch result=null;
+        try { result=result(owner,id); }
+        catch(ApiException missingResult) { if(!"RESULT_NOT_READY".equals(missingResult.code())) throw missingResult; }
+        return new Inspection(job,row.get("retry_of")==null?null:UUID.fromString((String)row.get("retry_of")),focus(owner,id),captured,
+                json.readValue((String)row.get("harness_snapshot"),HarnessProperties.class),tasks(owner,id),sources(owner,id),result);
+    }
     private static final Set<String> TRACE_KEYS = Set.of("state","code","taskId","kind","sourceId","passageCount","resultCount",
             "inputTokens","outputTokens","durationMs","selectedPassageIds","provider","modelId","artifactFingerprint","version",
             "complete","supportedCount","gapCount","repair","validatorVersion");

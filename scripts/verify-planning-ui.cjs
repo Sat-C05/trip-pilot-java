@@ -38,6 +38,17 @@ async function text(page, value) { await page.getByText(value, { exact: true }).
   await text(page, 'Compare the evidence');
   assert.equal(await page.locator('table tbody tr').count(), 7);
   const jaipur = page.locator('.trip-card').filter({ has: page.getByRole('heading', { name: 'Jaipur', exact: true }) });
+  await jaipur.getByRole('button', { name: 'Open Research Inspector', exact: true }).click();
+  await jaipur.getByText(/Captured model/, { exact: true }).waitFor();
+  await jaipur.getByRole('link', { name: 'Inspect cited passage', exact: true }).first().click();
+  await jaipur.locator('.inspector blockquote').first().waitFor({ state: 'visible' });
+  assert.ok(await jaipur.locator('.inspector blockquote').first().innerText());
+  await page.screenshot({ path: path.join(output, 'inspector-desktop.png'), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: path.join(output, 'inspector-mobile.png'), fullPage: true });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Inspector must fit mobile');
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await jaipur.getByRole('button', { name: 'Close Research Inspector', exact: true }).click();
   await jaipur.getByRole('button', { name: 'Select trip', exact: true }).click();
   await text(page, 'SELECTED TRIP / PRIVATE CONTEXT');
   await page.getByLabel('Research topic', { exact: true }).selectOption('TRANSPORT');
@@ -78,7 +89,7 @@ async function text(page, value) { await page.getByText(value, { exact: true }).
   assert.equal(await page.locator('.sidebar nav button').count(), 0);
   assert.equal(await page.locator('.trip-card').count(), 0);
   assert.deepEqual(errors, []);
-  fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ passed: true, flows: ['sign-in', 'validated-cards', 'comparison', 'selection', 'scoped-follow-up', 'cancel', 'independent-second-trip', 'reload', 'mobile', 'clarification', 'register', 'logout', 'owner-isolation'], pageErrors: errors }, null, 2));
+  fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ passed: true, flows: ['sign-in', 'validated-cards', 'inspector-captured-policy', 'inspector-citation-passage-link', 'inspector-mobile', 'comparison', 'selection', 'scoped-follow-up', 'cancel', 'independent-second-trip', 'reload', 'mobile', 'clarification', 'register', 'logout', 'owner-isolation'], pageErrors: errors }, null, 2));
   console.log('Production browser acceptance passed: auth, comparison, selection, scoped follow-ups/cancellation/reload, clarification and mobile isolation.');
 })().catch(async error => { if (page) { await page.screenshot({ path: path.join(output, 'failure.png'), fullPage: true }).catch(() => {}); console.log(await page.locator('body').innerText()); } console.error(error); process.exitCode = 1; }).finally(async () => { if (browser) await browser.close(); server.closeAllConnections(); server.close(); });
 

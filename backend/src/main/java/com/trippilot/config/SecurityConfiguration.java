@@ -26,7 +26,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/identity/register", "/api/identity/login").permitAll()
                         .requestMatchers("/api/identity/me", "/api/planning/sessions", "/api/planning/sessions/*").authenticated()
                         .requestMatchers(HttpMethod.POST,"/api/planning/sessions/*/revisions","/api/planning/sessions/*/jobs","/api/research/jobs/*/cancel").authenticated()
-                        .requestMatchers(HttpMethod.GET,"/api/research/jobs/*","/api/research/jobs/*/tasks","/api/research/jobs/*/sources","/api/research/jobs/*/result","/api/research/jobs/*/events","/api/research/jobs/*/event-log").authenticated()
+                        .requestMatchers(HttpMethod.GET,"/api/research/jobs/*","/api/research/jobs/*/tasks","/api/research/jobs/*/sources","/api/research/jobs/*/result","/api/research/jobs/*/events","/api/research/jobs/*/event-log","/api/research/jobs/*/inspector").authenticated()
                         .requestMatchers(HttpMethod.GET,"/api/planning/sessions/*/jobs","/api/planning/sessions/*/selected-trips","/api/planning/revisions/*","/api/planning/trips/*","/api/planning/trips/*/messages","/api/research/jobs/*/images").authenticated()
                         .requestMatchers(HttpMethod.POST,"/api/planning/clarification","/api/planning/sessions/*/selected-trips","/api/planning/trips/*/research").authenticated()
                         .requestMatchers(HttpMethod.GET,"/api/booking/capability","/api/booking/trips/*/attempts","/api/booking/attempts/*","/api/booking/quotes/*").authenticated()

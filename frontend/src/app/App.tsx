@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { BookingPanel } from '../features/BookingPanel';
+import { ResearchInspector } from '../features/ResearchInspector';
 import { api, ApiError, terminal, fieldLabels, inputLabels, reasonText, safeLink, type Requirements, type Job, type Result, type Session, type Trip, type Detail, type Message, type Image } from '../shared/api';
 
 const blank: Requirements = { departure: null, destinationIntent: null, country: 'IN', arrival: null, departureDate: null, budget: null, currency: 'INR', travelers: null, preferences: [] };
@@ -181,7 +182,7 @@ export function App() {
             {value.result ? <Evidence result={value.result} /> : <p className="gap">{terminal(value.job) ? `No validated result. ${reasonText(value.job.outcomeCode || value.job.status)}` : 'Research is running. Evidence appears after validation.'}</p>}
             <div className="actions">{!trip && <><label className="check"><input type="checkbox" checked={comparison.includes(value.job.id)} onChange={event => setComparison(previous => event.target.checked ? [...previous, value.job.id] : previous.filter(id => id !== value.job.id))} /> Compare</label><button disabled={busy || !terminal(value.job) || !value.result?.fields.some(field => ['SUPPORTED', 'CONFLICTING'].includes(field.state))} onClick={() => void select(value)}>{value.result?.fields.some(field => field.state === 'CONFLICTING') ? 'Select with source differences' : 'Select trip'}</button></>}
               {!terminal(value.job) ? <button className="secondary" disabled={busy || value.job.status === 'CANCEL_REQUESTED'} onClick={() => void perform(async () => { await api(`/api/research/jobs/${value.job.id}/cancel`, {}); const latest = await card(await api<Job>(`/api/research/jobs/${value.job.id}`)); setCards(previous => previous.map(item => item.job.id === latest.job.id ? latest : item)); })}>Cancel research</button> : !trip && <button className="secondary" disabled={busy} onClick={() => void perform(async () => { await api(`/api/planning/sessions/${sessionId}/jobs`, { revisionId: value.job.revisionId, requestKey: crypto.randomUUID(), retryOf: value.job.id }); await showSession(sessionId); })}>Refresh sources</button>}
-            </div>
+            </div><ResearchInspector jobId={value.job.id} />
           </div></article>)}</div></section>}
       </div>
     </div>}

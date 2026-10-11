@@ -21,3 +21,5 @@ All 36 tests passed on Java 21/MySQL 8.4 through scripts/verify-phase2.ps1, incl
 
 
 
+
+Phase6 adds owner-scoped GET /api/research/jobs/{id}/inspector: coherent saved job/captured non-endpoint model/budgets/tasks/sources/refreshed validation view, null result when absent. Event-log remains separately cursor-paginated (100 rows). No raw prompts/replies or endpoint credentials are exposed. See ../docs/phase6-delivery.md.

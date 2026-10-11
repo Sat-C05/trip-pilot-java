@@ -13,6 +13,23 @@ import org.springframework.web.server.ResponseStatusException;
 
 class ProviderStoreTest {
     @TempDir Path directory;
+    @org.junit.jupiter.api.AfterEach void cleanOwnedTemporaryDirectory() throws Exception {
+        // Windows can briefly retain a deleted atomic-write file while removing its parent.
+        // Retry only cleanup of this JUnit-owned directory; never suppress a final cleanup failure.
+        for(int attempt=0;attempt<100;attempt++) {
+            try {
+                if(java.nio.file.Files.exists(directory)) {
+                    List<Path> paths;
+                    try(var entries=java.nio.file.Files.walk(directory)){paths=entries.sorted(Comparator.reverseOrder()).toList();}
+                    for(var path:paths) java.nio.file.Files.deleteIfExists(path);
+                }
+                return;
+            } catch(java.io.IOException transientFailure) {
+                if(attempt==99) throw transientFailure;
+                Thread.sleep(20);
+            }
+        }
+    }
     static class Time extends Clock {
         Instant now=Instant.parse("2026-10-11T00:00:00Z");
         public ZoneId getZone(){return ZoneOffset.UTC;}
@@ -53,5 +70,12 @@ class ProviderStoreTest {
     }
     @Test void ledgerHasExclusiveOwnership() throws Exception {
         Path file=directory.resolve("ledger.json");try(var store=new ProviderStore(file,new Time())){assertThrows(IllegalStateException.class,()->new ProviderStore(file,new Time()));}
+    }
+    @Test void corruptLedgerFailureReleasesOwnershipWithoutRewritingData() throws Exception {
+        Path file=directory.resolve("ledger.json");java.nio.file.Files.writeString(file,"invalid-json");
+        assertThrows(IllegalStateException.class,()->new ProviderStore(file,new Time()));
+        assertEquals("invalid-json",java.nio.file.Files.readString(file));
+        java.nio.file.Files.delete(file); // Only this deliberately corrupt test fixture.
+        try(var store=new ProviderStore(file,new Time())){assertEquals(5,store.inventory(scope()).items().getFirst().remaining());}
     }
 }

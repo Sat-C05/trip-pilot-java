@@ -17,6 +17,8 @@ services:
       - key: DB_PASSWORD
         sync: false
       - key: MODEL_ID
-        sync: false
+        value: gemini-3.5-flash-lite
+      - key: GEMINI_MIN_CALL_INTERVAL_MS
+        value: 5000
       - key: GEMINI_API_KEY
         sync: false

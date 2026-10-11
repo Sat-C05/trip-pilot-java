@@ -19,13 +19,24 @@ public final class GeminiModelAdapter implements ModelAdapter {
     public static final URI ENDPOINT = URI.create("https://generativelanguage.googleapis.com");
     private final String apiKey;
     private final URI allowedEndpoint;
+    private final long minCallIntervalMillis;
+    private long previousAdmission;
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5))
             .followRedirects(HttpClient.Redirect.NEVER).build();
     private final JsonMapper json = JsonMapper.builder().build();
     @org.springframework.beans.factory.annotation.Autowired
-    public GeminiModelAdapter(@Value("${GEMINI_API_KEY:}") String apiKey) { this(apiKey, ENDPOINT); }
+    public GeminiModelAdapter(@Value("${GEMINI_API_KEY:}") String apiKey,
+            @Value("${GEMINI_MIN_CALL_INTERVAL_MS:5000}") long minCallIntervalMillis) {
+        this(apiKey, ENDPOINT, minCallIntervalMillis);
+        if(minCallIntervalMillis < 5000) throw new IllegalArgumentException("Gemini request spacing must be at least five seconds");
+    }
+    public GeminiModelAdapter(String apiKey) { this(apiKey, ENDPOINT, 5000); }
     // Package-private endpoint override is only for in-process transport fixtures.
-    GeminiModelAdapter(String apiKey, URI endpoint) { this.apiKey = apiKey; this.allowedEndpoint = endpoint; }
+    GeminiModelAdapter(String apiKey, URI endpoint) { this(apiKey, endpoint, 0); }
+    GeminiModelAdapter(String apiKey, URI endpoint, long minCallIntervalMillis) {
+        if(minCallIntervalMillis < 0 || minCallIntervalMillis > 60000) throw new IllegalArgumentException("Invalid Gemini request spacing");
+        this.apiKey = apiKey; this.allowedEndpoint = endpoint; this.minCallIntervalMillis = minCallIntervalMillis;
+    }
     @jakarta.annotation.PreDestroy public void close() { client.shutdownNow(); }
     /** Configuration identity, NOT a downloadable cloud-weight digest or lineage attestation. */
     public static String fingerprint(String modelId) {
@@ -50,6 +61,7 @@ public final class GeminiModelAdapter implements ModelAdapter {
                     "generationConfig", Map.of("temperature", config.temperature(), "seed", config.seed(),
                             "candidateCount", 1, "maxOutputTokens", config.outputTokens(),
                             "responseMimeType", "application/json", "responseJsonSchema", schema));
+            awaitAdmission(cancelled, deadline);
             var http = HttpRequest.newBuilder(URI.create(allowedEndpoint + "/v1beta/models/" + model.modelId() + ":generateContent"))
                     .timeout(Duration.ofNanos(Math.max(1, deadline - System.nanoTime())))
                     .header("x-goog-api-key", apiKey).header("Content-Type", "application/json")
@@ -61,7 +73,7 @@ public final class GeminiModelAdapter implements ModelAdapter {
                 try { response = future.get(50, TimeUnit.MILLISECONDS); break; }
                 catch (TimeoutException ignored) { }
             }
-            if (response.statusCode() != 200) throw new ModelFailure(UNAVAILABLE);
+            if (response.statusCode() != 200) throw new ModelFailure(UNAVAILABLE, response.statusCode());
             if (!response.headers().firstValue("Content-Type").orElse("").toLowerCase(Locale.ROOT).startsWith("application/json"))
                 throw new ModelFailure(INVALID_RESPONSE);
             var result = json.readTree(response.body());
@@ -98,5 +110,14 @@ public final class GeminiModelAdapter implements ModelAdapter {
     private static void check(BooleanSupplier cancelled, long deadline) {
         if (Thread.currentThread().isInterrupted() || cancelled.getAsBoolean()) throw new ModelFailure(CANCELLED);
         if (System.nanoTime() >= deadline) throw new ModelFailure(DEADLINE);
+    }
+    /** Shared across all callers. Waiting consumes the existing call deadline and adds no retry. */
+    private synchronized void awaitAdmission(BooleanSupplier cancelled, long deadline) throws InterruptedException {
+        while(previousAdmission != 0 && System.nanoTime() - previousAdmission < TimeUnit.MILLISECONDS.toNanos(minCallIntervalMillis)) {
+            check(cancelled, deadline);
+            TimeUnit.MILLISECONDS.sleep(50);
+        }
+        check(cancelled, deadline);
+        previousAdmission = System.nanoTime();
     }
 }

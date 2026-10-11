@@ -63,6 +63,7 @@ class GeminiModelAdapterTest {
         status = 429; response = "private provider text fixture-key";
         var error = assertThrows(ModelFailure.class, () -> adapter.infer(config(3), request(), () -> false));
         assertEquals(UNAVAILABLE, error.code()); assertEquals(1, calls.get()); assertNull(error.getCause());
+        assertEquals(429,error.httpStatus());
         assertFalse(error.toString().contains("fixture-key"));
     }
     @Test void exactVersionMustMatch() { response = answer(12, 10, 22, "STOP", "gemini-changed"); failure(SNAPSHOT_MISMATCH); }
@@ -121,5 +122,18 @@ class GeminiModelAdapterTest {
     @Test void unsolicitedFunctionCallCannotBeAccepted() {
         response = response.replace("\"text\":\"{}\"", "\"functionCall\":{\"name\":\"book\"}");
         failure(INVALID_RESPONSE);
+    }
+    @Test void admissionSpacingConsumesDeadlineAndCancelledWaitNeverCallsProvider() {
+        var paced = new GeminiModelAdapter("fixture-key",endpoint,1500);
+        try {
+            assertEquals("{}",paced.infer(config(3),request(),()->false).text());
+            assertEquals(CANCELLED,assertThrows(ModelFailure.class,
+                    () -> paced.infer(config(3),request(),()->true)).code());
+            assertEquals(DEADLINE,assertThrows(ModelFailure.class,
+                    () -> paced.infer(config(1),request(),()->false)).code());
+            assertEquals(1,calls.get());
+            assertEquals("{}",paced.infer(config(3),request(),()->false).text());
+            assertEquals(2,calls.get());
+        } finally {paced.close();}
     }
 }

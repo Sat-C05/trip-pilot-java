@@ -15,6 +15,10 @@ Enter **Jaipur, Mumbai**, leave unknown dates/travelers/budget blank and start r
 
 Open the exact excerpts/citations and retrieval times. Point out that attributed source text still needs meaning/suitability review. If an external search/model fails, show the recorded outcome and refresh once services are healthy; do not claim failure as evidence or alter an old card. Initial guide research is not an unrestricted whole-web search or verified Delhi-to-Mumbai ticket itinerary.
 
+## Coursework CRUD (1–2 minutes)
+
+Researching a destination creates its persisted card. Read it in the saved plan and expand **Guide details & sources**. Use **Edit card** to save a custom title and personal notes, then reload to show persistence. Search by title or notes. Choose **Delete card**, reopen the plan and show the card in **Trash**; choose **Restore card** to recover it. Rename the plan through the sidebar. Explain that deletion is reversible and notes are personal text; citations, selected-trip records and booking authorizations are retained. Existing plans keep the research form collapsed under **Research more destinations** so cards stay within easy reach. See [API/CRUD mapping](card-management.md).
+
 ## Inspector (2 minutes)
 
 Open **Research Inspector** on the card. Show the captured `extractive-v2` model/prompt/artifact and limits, task outcomes, event timeline and validation decisions. Click **Inspect cited passage** to reveal saved source text and offsets/hash. Explain that proposed quotes receive backend-known travel scope and exact support checks; raw personal prompts/model replies are excluded. Missing result/expired events are explicit rather than fabricated. Current facts and decisions belong to this job/context/revision.

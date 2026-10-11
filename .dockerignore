@@ -1,0 +1,15 @@
+**
+!pom.xml
+!mvnw
+!.mvn/
+!.mvn/**
+!backend/
+!backend/pom.xml
+!backend/src/
+!backend/src/**
+!booking-demo/
+!booking-demo/pom.xml
+!infra/
+!infra/deployment/
+!infra/deployment/Dockerfile
+!infra/deployment/start-hosted.sh

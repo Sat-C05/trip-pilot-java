@@ -63,7 +63,7 @@ class FoundationDatabaseTest {
 
     @Test
     void migrationsAndDurableAuthenticationProtectSessionLifecycle() throws Exception {
-        assertEquals(7, jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1", Integer.class));
+        assertEquals(8, jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1", Integer.class));
         var browser = new Browser();
         assertEquals(401, browser.get("/api/identity/me").statusCode());
         assertEquals(403, browser.post("/api/identity/register", "{}", false).statusCode());

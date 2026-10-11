@@ -121,6 +121,58 @@ class PlanningExperienceDatabaseTest {
             assertEquals(400,b.post("/api/planning/clarification","{\"country\":\"IN\",\"travelers\":0,\"preferences\":[]}").statusCode());
         }
     }
+    @Test void cardCrudRetainsImmutableEvidenceAndSelectedContext() throws Exception {
+        try(var b=browser();var other=browser()) {
+            UUID session=b.session(),job=completed(b,session,"Jaipur"),trip=select(b,session,job);
+            String path="/api/planning/cards/"+job;
+            String stored=jdbc.queryForObject("SELECT result FROM validated_research_results WHERE job_id=?",String.class,job.toString());
+            String edit=json.writeValueAsString(Map.of("title","  Jaipur weekend  ","notes","<script>personal only</script>"));
+            assertEquals(200,b.call("PUT",path,edit,true,"application/json",null).statusCode());
+            assertEquals("Jaipur weekend",JsonPath.read(b.get(path).body(),"$.cardTitle"));
+            assertEquals("<script>personal only</script>",JsonPath.read(b.get(path).body(),"$.cardNotes"));
+            assertEquals(404,other.get(path).statusCode());
+            assertEquals(404,other.call("PUT",path,edit,true,"application/json",null).statusCode());
+            assertEquals(404,other.call("DELETE",path,null,true,null,null).statusCode());
+            assertEquals(404,other.post(path+"/restore","{}").statusCode());
+            assertEquals(403,b.call("PUT",path,edit,false,"application/json",null).statusCode());
+            assertEquals(403,b.call("DELETE",path,null,false,null,null).statusCode());
+            assertEquals(403,b.call("POST",path+"/restore","{}",false,"application/json",null).statusCode());
+            assertEquals(204,b.call("DELETE",path,null,true,null,null).statusCode());
+            assertEquals(204,b.call("DELETE",path,null,true,null,null).statusCode()); // idempotent
+            assertNotNull(JsonPath.read(b.get(path).body(),"$.cardDeletedAt"));
+            assertEquals("[]",b.get("/api/planning/sessions/"+session+"/jobs").body());
+            assertTrue(b.get("/api/planning/sessions/"+session+"/jobs?includeDeleted=true").body().contains(job.toString()));
+            assertEquals(404,other.get("/api/planning/sessions/"+session+"/jobs?includeDeleted=true").statusCode());
+            assertEquals(409,b.call("PUT",path,edit,true,"application/json",null).statusCode());
+            assertEquals(200,b.get("/api/planning/trips/"+trip).statusCode());
+            assertEquals(200,b.get("/api/research/jobs/"+job+"/inspector").statusCode());
+            assertEquals(200,b.post(path+"/restore","{}").statusCode());
+            assertEquals(200,b.post(path+"/restore","{}").statusCode());
+            assertNull(JsonPath.read(b.get(path).body(),"$.cardDeletedAt"));
+            assertTrue(b.get("/api/planning/sessions/"+session+"/jobs").body().contains(job.toString()));
+            assertEquals(stored,jdbc.queryForObject("SELECT result FROM validated_research_results WHERE job_id=?",String.class,job.toString()));
+            assertEquals("Jaipur",repository.revision(b.owner,repository.read(b.owner,job).revisionId()).requirements().destinationIntent());
+        }
+    }
+    @Test void cardValidationActiveResearchAndPlanRenameAreOwnerScoped() throws Exception {
+        try(var b=browser();var other=browser()) {
+            UUID session=b.session(),job=b.job(session,b.revision(session),UUID.randomUUID().toString());
+            String path="/api/planning/cards/"+job;
+            assertEquals(409,b.call("DELETE",path,null,true,null,null).statusCode());
+            assertNull(repository.read(b.owner,job).cardDeletedAt());
+            for(var edit:List.of(Map.of("title"," ","notes",""),Map.of("title","x".repeat(121),"notes",""),Map.of("title","x","notes","y".repeat(2001)),Map.of("title","x","notes","","destination","Mumbai")))
+                assertEquals(400,b.call("PUT",path,json.writeValueAsString(edit),true,"application/json",null).statusCode());
+            String plan="/api/planning/sessions/"+session,rename="{\"title\":\"  College holiday  \"}";
+            assertEquals(200,b.call("PUT",plan,rename,true,"application/json",null).statusCode());
+            assertEquals("College holiday",JsonPath.read(b.get(plan).body(),"$.title"));
+            assertTrue(b.get("/api/planning/sessions").body().contains("College holiday"));
+            assertEquals(404,other.call("PUT",plan,rename,true,"application/json",null).statusCode());
+            assertEquals(403,b.call("PUT",plan,rename,false,"application/json",null).statusCode());
+            assertEquals(400,b.call("PUT",plan,"{\"title\":\"  \"}",true,"application/json",null).statusCode());
+            repository.cancel(b.owner,job);
+            assertEquals(204,b.call("DELETE",path,null,true,null,null).statusCode());
+        }
+    }
     @Test void imagePublicationIsScopedAndCancellationFenced() throws Exception {
         try(var b=browser();var other=browser()) {
             UUID session=b.session(),revision=b.revision(session),job=b.job(session,revision,UUID.randomUUID().toString());

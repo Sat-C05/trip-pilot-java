@@ -12,4 +12,4 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 The helper creates only runtime-data/local-mysql, generates random root/application credentials, binds localhost, and refuses occupied ports or unidentified existing data. The environment helper loads connection values without displaying them and selects portable Java 21 when present. stop-local-mysql.ps1 checks executable/start time/port ownership before graceful shutdown and preserves database data. Data, recovery configuration and downloaded runtimes are ignored by Git.
 
-No model container or application container is used. Runtime integration is Phase 2 work; production deployment is deferred. See the root README for application startup and verification.
+Local development uses no containers. Cloud coursework preparation now includes infra/deployment/Dockerfile and render.yaml; actual image build/deployment is pending. See docs/coursework-deployment.md. No Docker installation/startup or local service replacement is required.

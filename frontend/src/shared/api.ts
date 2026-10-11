@@ -1,6 +1,6 @@
 export type Requirements = { departure: string | null; destinationIntent: string | null; country: 'IN'; arrival: string | null; departureDate: string | null; budget: string | null; currency: string | null; travelers: number | null; preferences: string[] };
 export type Session = { id: string; title: string; createdAt: string };
-export type Job = { id: string; sessionId: string; contextId: string; revisionId: string; status: string; outcomeCode: string | null; createdAt: string; modelTurns: number; searches: number; pages: number };
+export type Job = { id: string; sessionId: string; contextId: string; revisionId: string; status: string; outcomeCode: string | null; createdAt: string; modelTurns: number; searches: number; pages: number; cardTitle: string | null; cardNotes: string; cardDeletedAt: string | null };
 export type Citation = { sourceId: string; passageId: string; url: string; retrievedAt: string; quote: string };
 export type Field = { field: string; state: string; value: string | null; reason: string; citations: Citation[] };
 export type Result = { validatedAt: string; complete: boolean; missingRequirements: string[]; fields: Field[]; durationEstimate: { state: string; nights: number | null; assumptions: string[] }; costEstimateReason: string };
@@ -9,14 +9,14 @@ export type Trip = { id: string; sessionId: string; selectedJobId: string; desti
 export type Detail = { context: Trip; requirements: Requirements; selectedResult: Result; jobs: Job[] };
 export type Message = { id: string; role: string; content: string; jobId: string; createdAt: string };
 export class ApiError extends Error { constructor(public status: number, public code: string, message: string) { super(message); } }
-export async function api<T>(path: string, body?: unknown, form = false): Promise<T> {
+export async function api<T>(path: string, body?: unknown, form = false, method?: 'PUT' | 'DELETE'): Promise<T> {
   const headers: Record<string, string> = {};
-  if (body !== undefined) {
+  if (body !== undefined || method) {
     const csrf = await api<{ headerName: string; token: string }>('/api/identity/csrf');
     headers[csrf.headerName] = csrf.token;
     headers['Content-Type'] = form ? 'application/x-www-form-urlencoded' : 'application/json';
   }
-  const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST', credentials: 'same-origin', headers, body: body === undefined ? undefined : form ? String(body) : JSON.stringify(body) });
+  const response = await fetch(path, { method: method || (body === undefined ? 'GET' : 'POST'), credentials: 'same-origin', headers, body: body === undefined ? undefined : form ? String(body) : JSON.stringify(body) });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     throw new ApiError(response.status, data.code || 'REQUEST_FAILED', response.status === 401 ? 'Your session has ended. Please sign in.' : data.message || 'The request could not be completed. Please try again.');

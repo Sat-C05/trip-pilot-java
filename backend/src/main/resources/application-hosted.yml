@@ -1,0 +1,36 @@
+# Opt-in only; local defaults and services remain unchanged.
+server:
+  address: 0.0.0.0
+  port: ${PORT:10000}
+  forward-headers-strategy: none
+  servlet:
+    session:
+      cookie:
+        secure: true
+  tomcat:
+    threads:
+      max: 24
+      min-spare: 2
+    max-connections: 128
+    accept-count: 32
+spring:
+  datasource:
+    url: ${DB_URL}
+    hikari:
+      maximum-pool-size: 8
+      minimum-idle: 1
+      data-source-properties:
+        sslMode: VERIFY_IDENTITY
+        fallbackToSystemTrustStore: false
+        trustCertificateKeyStoreUrl: file:/tmp/trippilot-db.p12
+        trustCertificateKeyStoreType: PKCS12
+        trustCertificateKeyStorePassword: changeit
+trippilot:
+  model:
+    base-url: https://generativelanguage.googleapis.com
+    model-id: ${MODEL_ID}
+  model-runtime:
+    provider: gemini
+    runtime-version: v1beta
+  booking:
+    enabled: false

@@ -1,0 +1,40 @@
+# Hosting TripPilot
+
+Checked against provider documentation on 2026-10-11. These are recommendations, not a completed deployment. Free quotas, regions and eligibility can change.
+
+## Recommended coursework stack
+
+| Component | Suggested service | What to expect |
+| --- | --- | --- |
+| React frontend | [Vercel Hobby](https://vercel.com/docs/plans/hobby) | Good fit for a personal, non-commercial college project. Set project root to `frontend`, build `npm run build`, output `dist`. |
+| Spring Boot backend | [Render Free web service](https://render.com/docs/free) | Deploy Java 21 using a container because Java is not a native Render runtime. Free compute is only [512 MB RAM / 0.1 CPU](https://render.com/docs/compute-plans); startup and three concurrent research workers need memory testing. Services sleep after 15 minutes without inbound traffic and may restart. A wake-up can take about a minute. |
+| MySQL | [Aiven free MySQL](https://aiven.io/docs/products/mysql/concepts/mysql-free-tier) | Retains the required MySQL stack. Current allowance: one node, 1 CPU, 1 GB RAM, 1 GB disk, backups and 76 connections. No credit card required. Choose the nearest mutually available backend/database regions, use TLS and keep the connection pool small. Confirm the provisioned MySQL version supports these migrations. |
+| Model inference | [Gemini API free tier](https://ai.google.dev/gemini-api/docs/pricing) after live adapter acceptance, or retain the local GPU | The Gemini adapter is implemented with focused fixture tests; live evaluation and account quotas are pending. Local pinned Ollama remains available. Keeping Ollama requires your computer awake/online and a private authenticated connection from the backend. Render/Vercel/Aiven free plans do not supply the evaluated GPU. Do not publish unauthenticated Ollama. |
+| Optional booking demo | Keep disabled for the initial hosted version | The existing provider is a local loopback server with a durable filesystem ledger. Free Render has no persistent disk and its ephemeral files disappear on restart; deploying this provider there would lose booking state. |
+
+This is the easiest managed-services route for the UI, API and database. It is not an independent, always-on, completely cloud-hosted research app until model hosting is solved. With a model outage, saved cards, notes, comparison and card CRUD still work; new research must report unavailable rather than manufacture results.
+
+## Fully hosted inference option
+
+My recommended route for a fully hosted coursework version is **Vercel + Render + Aiven MySQL + a Gemini API free-tier adapter**. Google currently offers free input/output tokens for selected models with [project/model-dependent rate limits](https://ai.google.dev/gemini-api/docs/rate-limits). Check the actual account allowance in AI Studio before choosing a model; several extraction calls per research job can exhaust a small quota. Free-tier content can be used to improve Google's products, as disclosed on its pricing page.
+
+The adapter is **implemented but not live-evaluated or accepted for hosting**. See [deployment preparation](coursework-deployment.md) for artifacts and pending gates. Keep its API key server-side, retain backend-owned retrieval/validation/budgets, snapshot the chosen model for each new job and rerun extraction/repair/adversarial evaluations. Do not accept free-form cloud answers as validated evidence or make client-side model calls. Existing Ollama jobs retain their captured configuration; only new jobs should use a newly selected provider. This path removes the need to leave the laptop on, within provider quotas and backend resource limits.
+
+## Alternative: one free VM
+
+[Oracle Always Free Ampere A1](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm) currently provides an allowance equivalent to **2 Arm OCPUs and 12 GB RAM**, subject to regional capacity. Older 4-core/24-GB recommendations are out of date. You could host Spring Boot, MySQL and a reverse proxy on this VM, and optionally serve the frontend there too. Use persistent block storage, restrict MySQL to the private host/network, and maintain your own off-machine backups and security updates. Idle VMs may be reclaimed.
+
+This offers more backend memory and can keep the demo provider beside the backend on loopback with persistent storage. However, it is CPU-only. The current artifact is about 9.6 GB on disk and already uses substantial system RAM on the tested laptop. Fitting it alongside MySQL/Java and meeting inference deadlines on a 12-GB VM is **unverified**; do not promise acceptable performance. An Arm runtime/artifact combination needs fresh compatibility, memory, extraction and latency acceptance. A smaller model or a hosted inference API would be a separately evaluated change; swapping the endpoint alone is insufficient.
+
+For a local college demonstration that must reproduce the existing evaluated model, keep the current GPU. For a fully hosted demonstration, evaluate the free-tier cloud adapter above; a VM CPU model or budgeted inference are alternatives. Free tiers do not guarantee uninterrupted production capacity.
+
+## Changes required before deployment
+
+1. **Choose the model route first.** Backend-to-model connectivity is server-side. A cloud backend cannot use `127.0.0.1:11436` to reach your laptop. Keep immutable model snapshots and the shared one-inference limit.
+2. **Preserve same-origin authentication.** The current React app uses relative `/api` URLs, session cookies, CSRF and EventSource. Configure a same-origin HTTPS API proxy, or explicitly implement and test credentialed cross-origin sessions/CORS/cookie policy. [Vercel external rewrites](https://vercel.com/docs/routing/rewrites) support API proxying, but [external-target requests have a 120-second response timeout](https://vercel.com/docs/errors/router_external_target_error); test SSE replay/reconnect through the actual host. Never cache identity, card, booking or research responses at the proxy/CDN.
+3. **Configure hosted Java.** Use Java 21, `SERVER_ADDRESS=0.0.0.0`, the platform's assigned `SERVER_PORT`, `SESSION_COOKIE_SECURE=true`, trusted proxy/forwarded headers as needed, TLS-verified `DB_URL`, database username/password in the host's secret settings, and the chosen private `MODEL_BASE_URL`. Tune heap, native memory and database pool within measured host limits. Keep a single backend instance for the current dispatcher ownership design. [Render documents Java/container deployment here](https://render.com/docs/docker).
+4. **Start with an empty hosted database.** Run all eight Flyway migrations there and verify owner isolation, CRUD persistence and JDBC session support. Do not upload ignored local database files, credentials, research traces or personal user records. If existing data must later move, make an explicit backup/migration plan first.
+5. **Keep `BOOKING_ENABLED=false`.** Enabling the demo requires persistent provider storage, the provider alongside the backend on loopback, and reconciliation/duplicate checks after restart. Do not treat deploy enablement as transaction consent.
+6. **Run hosted acceptance.** Register/login/logout and CSRF; create/read/update/delete/restore a card and rename a plan; reload; compare/select; run fresh research; follow up; verify citations and Inspector; SSE through the proxy; restart persistence and interrupted-job behavior; mobile layout. Verify resource limits and protect registration/research admission from public abuse before opening unrestricted access.
+
+No account creation, payment, upload, push, service replacement or deployment has been performed. The user selected Gemini inference; account access, exact model quota/version evaluation and hosted acceptance remain pending.

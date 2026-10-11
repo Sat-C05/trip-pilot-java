@@ -44,4 +44,12 @@ public class PlanningController {
         if (rows.isEmpty()) { throw new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Planning session not found."); }
         return rows.getFirst();
     }
+
+    @PutMapping("/{id}")
+    @Transactional
+    Session rename(Principal principal, @PathVariable UUID id, @Valid @RequestBody Create input) {
+        read(principal,id);
+        jdbc.update("UPDATE planning_sessions SET title=? WHERE id=? AND owner_id=?",input.title().strip(),id.toString(),principal.getName());
+        return read(principal,id);
+    }
 }

@@ -28,7 +28,8 @@ public class ResearchRepository {
     public record Revision(UUID id, int revisionNo, TravelRequirements requirements) {}
     public record Job(UUID id, UUID ownerId, UUID sessionId, UUID contextId, UUID revisionId, JobState status,
             long version, UUID traceId, String outcomeCode, Instant createdAt, Instant startedAt,
-            int modelTurns, int searches, int pages, String searchProvider) {}
+            int modelTurns, int searches, int pages, String searchProvider,
+            String cardTitle, String cardNotes, Instant cardDeletedAt) {}
     public record Run(Job job, InferenceConfiguration model, HarnessProperties harness, TravelRequirements requirements) {}
     public record Task(UUID id, String kind, String status, String outcomeCode) {}
     public record Event(long id, String type, Map<String,Object> data, Instant createdAt) {}
@@ -121,7 +122,8 @@ public class ResearchRepository {
                 UUID.fromString(rs.getString("id")),UUID.fromString(rs.getString("owner_id")),UUID.fromString(rs.getString("session_id")),
                 UUID.fromString(rs.getString("context_id")),UUID.fromString(rs.getString("request_revision_id")),JobState.valueOf(rs.getString("status")),
                 rs.getLong("version"),UUID.fromString(rs.getString("trace_id")),rs.getString("outcome_code"),rs.getTimestamp("created_at").toInstant(),
-                rs.getTimestamp("started_at") == null ? null : rs.getTimestamp("started_at").toInstant(),rs.getInt("model_turns"),rs.getInt("searches"),rs.getInt("pages"),rs.getString("search_provider")),id.toString(),owner);
+                rs.getTimestamp("started_at") == null ? null : rs.getTimestamp("started_at").toInstant(),rs.getInt("model_turns"),rs.getInt("searches"),rs.getInt("pages"),rs.getString("search_provider"),
+                rs.getString("card_title"),rs.getString("card_notes"),rs.getTimestamp("card_deleted_at")==null?null:rs.getTimestamp("card_deleted_at").toInstant()),id.toString(),owner);
         if (rows.isEmpty()) throw missing(); return rows.getFirst();
     }
     public String focus(String owner,UUID job) {
@@ -139,8 +141,11 @@ public class ResearchRepository {
         if(rows.isEmpty()) throw missing();return rows.getFirst();
     }
     public List<Job> jobs(String owner,UUID session,UUID context) {
+        return jobs(owner,session,context,false);
+    }
+    public List<Job> jobs(String owner,UUID session,UUID context,boolean includeDeleted) {
         ownerSession(owner,session,false);
-        return jdbc.queryForList("SELECT id FROM research_jobs WHERE session_id=? AND context_id=? AND owner_id=? ORDER BY created_at DESC,id DESC LIMIT 100",String.class,session.toString(),context.toString(),owner)
+        return jdbc.queryForList("SELECT id FROM research_jobs WHERE session_id=? AND context_id=? AND owner_id=?"+(includeDeleted?"":" AND card_deleted_at IS NULL")+" ORDER BY created_at DESC,id DESC LIMIT 100",String.class,session.toString(),context.toString(),owner)
                 .stream().map(id->read(owner,UUID.fromString(id))).toList();
     }
     public void saveImage(Run run,UUID worker,UUID source,CommonsImages.Image image) {

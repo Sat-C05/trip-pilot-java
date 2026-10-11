@@ -32,8 +32,8 @@ public class PlanningExperienceController {
     public record Clarification(TravelRequirements requirements,List<String> missing,String message) {}
 
     @GetMapping("/api/planning/sessions/{session}/jobs")
-    List<ResearchRepository.Job> jobs(Principal principal,@PathVariable UUID session) {
-        return research.jobs(principal.getName(),session,research.planningContext(principal.getName(),session));
+    List<ResearchRepository.Job> jobs(Principal principal,@PathVariable UUID session,@RequestParam(defaultValue="false") boolean includeDeleted) {
+        return research.jobs(principal.getName(),session,research.planningContext(principal.getName(),session),includeDeleted);
     }
     @GetMapping("/api/planning/revisions/{id}")
     ResearchRepository.Revision revision(Principal principal,@PathVariable UUID id) { return research.revision(principal.getName(),id); }
@@ -81,10 +81,10 @@ public class PlanningExperienceController {
                 .stream().map(id->context(owner,UUID.fromString(id))).toList();
     }
     @GetMapping("/api/planning/trips/{id}")
-    Detail detail(Principal principal,@PathVariable UUID id) {
+    Detail detail(Principal principal,@PathVariable UUID id,@RequestParam(defaultValue="false") boolean includeDeleted) {
         String owner=principal.getName();var context=context(owner,id);
         String revision=jdbc.queryForObject("SELECT id FROM request_revisions WHERE context_id=? AND owner_id=? ORDER BY revision_no DESC LIMIT 1",String.class,id.toString(),owner);
-        return new Detail(context,research.revision(owner,UUID.fromString(revision)).requirements(),research.result(owner,context.selectedJobId()),research.jobs(owner,context.sessionId(),id));
+        return new Detail(context,research.revision(owner,UUID.fromString(revision)).requirements(),research.result(owner,context.selectedJobId()),research.jobs(owner,context.sessionId(),id,includeDeleted));
     }
     @GetMapping("/api/planning/trips/{id}/messages")
     List<Message> messages(Principal principal,@PathVariable UUID id) {

@@ -1,0 +1,22 @@
+# Candidate only: configure secret file mysql-ca.pem and evaluate model before creating service.
+services:
+  - type: web
+    name: trippilot-coursework
+    runtime: docker
+    plan: free
+    numInstances: 1
+    dockerfilePath: ./infra/deployment/Dockerfile
+    dockerContext: .
+    healthCheckPath: /actuator/health/readiness
+    autoDeployTrigger: off
+    envVars:
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: MODEL_ID
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

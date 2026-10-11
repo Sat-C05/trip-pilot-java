@@ -16,7 +16,8 @@ public class ModelConfigurationFactory {
     public InferenceConfiguration snapshot() {
         var model = properties.model();
         return new InferenceConfiguration(new ModelSnapshot(runtime.provider(), model.modelId(),
-                runtime.artifactFingerprint(), runtime.runtimeVersion(), model.baseUrl(), model.contextTokens(),
+                "gemini".equals(runtime.provider()) ? GeminiModelAdapter.fingerprint(model.modelId()) : runtime.artifactFingerprint(),
+                runtime.runtimeVersion(), model.baseUrl(), model.contextTokens(),
                 runtime.promptVersion()), runtime.temperature(), runtime.seed(), harness.outputTokens(), harness.modelCallSeconds());
     }
 }

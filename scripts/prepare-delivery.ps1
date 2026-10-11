@@ -11,6 +11,9 @@ New-Item -ItemType Directory -Path $tripPilotStage -Force | Out-Null
 $tripPilotFiles=@('README.md','project-document.md','pom.xml','mvnw','mvnw.cmd','.gitignore','backend/pom.xml','backend/README.md','backend/.env.example','booking-demo/pom.xml','booking-demo/README.md','frontend/package.json','frontend/package-lock.json','frontend/index.html','frontend/tsconfig.json','frontend/vite.config.ts','frontend/README.md','infra/README.md','infra/.env.example','infra/compose.yml')
 $tripPilotFiles+=Get-ChildItem -LiteralPath (Join-Path $tripPilotRoot '.mvn'),(Join-Path $tripPilotRoot 'backend/src'),(Join-Path $tripPilotRoot 'booking-demo/src'),(Join-Path $tripPilotRoot 'frontend/src'),(Join-Path $tripPilotRoot 'scripts') -Recurse -File | ForEach-Object {[IO.Path]::GetRelativePath($tripPilotRoot,$_.FullName)}
 $tripPilotFiles+=Get-ChildItem -LiteralPath (Join-Path $tripPilotRoot 'docs') -File -Filter '*.md' | Where-Object Name -ne 'agent-work-map.md' | ForEach-Object {[IO.Path]::GetRelativePath($tripPilotRoot,$_.FullName)}
+$tripPilotFiles+=@('.dockerignore','render.yaml')
+$tripPilotFiles+=Get-ChildItem -LiteralPath (Join-Path $tripPilotRoot 'infra/deployment') -File | ForEach-Object {[IO.Path]::GetRelativePath($tripPilotRoot,$_.FullName)}
+if(Test-Path (Join-Path $tripPilotRoot 'frontend/vercel.json')){$tripPilotFiles+='frontend/vercel.json'}
 $tripPilotSecrets=@()
 foreach($tripPilotLocal in @('runtime-data/local-mysql/connection.json','runtime-data/local-mysql/root-recovery.json')){
     $tripPilotLocalPath=Join-Path $tripPilotRoot $tripPilotLocal
@@ -21,7 +24,7 @@ foreach($tripPilotRelative in $tripPilotFiles | Sort-Object -Unique){
     $tripPilotSource=Join-Path $tripPilotRoot $tripPilotRelative
     $tripPilotText=[IO.File]::ReadAllText($tripPilotSource)
     foreach($tripPilotSecret in $tripPilotSecrets){if($tripPilotText.Contains($tripPilotSecret)){throw "Local credential detected in public source: $tripPilotRelative"}}
-    if($tripPilotText -match '-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|\bsk-(proj-)?[A-Za-z0-9_-]{30,}'){throw "Potential private credential in source: $tripPilotRelative"}
+    if($tripPilotText -match '-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|\bsk-(proj-)?[A-Za-z0-9_-]{30,}|\bAIza[A-Za-z0-9_-]{35}'){throw "Potential private credential in source: $tripPilotRelative"}
     $tripPilotDestination=Join-Path $tripPilotStage $tripPilotRelative
     New-Item -ItemType Directory -Force -Path (Split-Path $tripPilotDestination -Parent) | Out-Null
     Copy-Item -LiteralPath $tripPilotSource -Destination $tripPilotDestination

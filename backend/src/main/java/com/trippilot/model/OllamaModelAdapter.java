@@ -108,7 +108,7 @@ public final class OllamaModelAdapter implements ModelAdapter {
     }
 
     /** Bound bytes while receiving, including chunked responses without Content-Length. */
-    private static final class LimitedBody implements HttpResponse.BodySubscriber<byte[]> {
+    static final class LimitedBody implements HttpResponse.BodySubscriber<byte[]> {
         private final CompletableFuture<byte[]> result = new CompletableFuture<>();
         private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         private Flow.Subscription subscription;

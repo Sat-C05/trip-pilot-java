@@ -1,4 +1,6 @@
 FROM eclipse-temurin:21-jdk-jammy AS build
+# The wrapper pins the ZIP checksum. Without unzip it selects a different tarball.
+RUN apt-get update && apt-get install -y --no-install-recommends unzip && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 COPY pom.xml mvnw ./
 COPY .mvn .mvn
